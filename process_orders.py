@@ -63,11 +63,14 @@ def request_ (method, url, headers, params=None, data=None, json=None, auth=None
 
 	return result
 
-def fetch_customer_orders (shop_url, api_key, password, debug):
+def fetch_orders (shop_url, api_key, password, parameters={}, debug=False):
 	headers = shopify_headers
 
 	# Get Count of Orders
-	params = {"status": "open", "financial_status": "pending"}
+	params = {"status": "open"}
+	for p in parameters.keys():
+		params[p] = parameters[p]
+
 	method = 'GET'
 	edge = '/admin/orders/count.json'
 	url = shop_url + edge
@@ -75,7 +78,6 @@ def fetch_customer_orders (shop_url, api_key, password, debug):
 	order_count = response.get('data',{}).get('count',0)
 
 	# Get Orders
-	params = {"status": "open", "financial_status": "pending"}
 	method = 'GET'
 	edge = '/admin/orders.json'
 	url = shop_url + edge
@@ -86,8 +88,16 @@ def fetch_customer_orders (shop_url, api_key, password, debug):
 	for page in xrange(1, int(total_pages + 1)):
 		params['page'] = page
 		params['limit'] = limit
+		print params
 		response = request_(method, url, headers, params=params, auth=(api_key, password), debug=debug)
 		orders += response.get('data',{}).get('orders')
+
+	return orders
+
+def fetch_customer_orders (shop_url, api_key, password, debug):
+	headers = shopify_headers
+
+	orders = fetch_orders(shop_url, api_key, password)
 
 	### Set Stripe Customer ID on Orders
 	for order in orders:
@@ -99,7 +109,7 @@ def fetch_customer_orders (shop_url, api_key, password, debug):
 		method = 'GET'
 		edge = '/admin/customers/{customer_id}/metafields.json'.format(customer_id = customer_id)
 		url = shop_url + edge
-		response = request_(method, url, headers, params=params, auth=(api_key, password), debug=debug)
+		response = request_(method, url, headers, auth=(api_key, password), debug=debug)
 		for metafield in response['data']['metafields']:
 			namespace = metafield['namespace']
 			key = metafield['key']
@@ -218,6 +228,14 @@ def update_order(shop_url, api_key, password, order_id, params, debug=False):
 	response = request_(method, url, headers, json=params, auth=(api_key, password), debug=debug)
 	return response
 
+def cancel_order(shop_url, api_key, password, order_id, params, debug=False):
+	headers = shopify_headers
+	method = 'POST'
+	edge = '/admin/orders/{order_id}/cancel.json'.format(order_id=order_id)
+	url = shop_url + edge
+	response = request_(method, url, headers, json=params, auth=(api_key, password), debug=debug)
+	return response
+
 def fulfill_order(shop_url, api_key, password, order_id, debug=False):
 	headers = shopify_headers
 	method = 'POST'
@@ -290,20 +308,56 @@ def process_customer_orders(shop_url, api_key, password, shopify_customer_id, cu
 
 ########################################################################
 
-debug = True
-test_customer_ids = []
+def run_process_orders(debug=True):
 
-customer_orders = fetch_customer_orders(shop_url, shopify_api_key, shopify_password, debug=debug)
+	test_customer_ids = []
+	customer_orders = fetch_customer_orders(shop_url, shopify_api_key, shopify_password, debug=debug)
+	for customer_id, cust_orders in customer_orders.iteritems():
+		if customer_id in test_customer_ids or test_customer_ids == []:
+			processed = process_customer_orders(shop_url=shop_url,
+											api_key=shopify_api_key,
+											password=shopify_password,
+											shopify_customer_id=customer_id,
+											cust_orders=cust_orders,
+											debug=debug)
+	return True
 
-for customer_id, cust_orders in customer_orders.iteritems():
-	if customer_id in test_customer_ids or test_customer_ids == []:
-		processed = process_customer_orders(shop_url=shop_url,
-										api_key=shopify_api_key,
-										password=shopify_password,
-										shopify_customer_id=customer_id,
-										cust_orders=cust_orders,
-										debug=debug)
+def cancel_failed_payments_orders(debug=False):
+	
+	parameters = {'financial_status': 'pending'}
+	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, parameters, debug=debug)
+	filtered_orders = [o for o in orders if o['financial_status'] == 'pending' and o['fulfillment_status'] == None and 'Payment Failed' in o['tags']]
+	try:
+		for order in filtered_orders:
+			order_id = order['id']
+			print order_id
+			params = {}
+			cancelled = cancel_order(shop_url=shop_url,
+															api_key=shopify_api_key,
+															password=shopify_password,
+															order_id=order_id,
+															params=params,
+															debug=debug)
+		return True
+	except:
+	 	return False
 
+def fulfill_last_weeks_orders():
 
-
-
+	parameters = {'financial_status': 'paid'}
+	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, parameters, debug=debug)
+	filtered_orders = [o for o in orders if o['financial_status'] == 'paid' and o['fulfillment_status'] == None]
+	
+	try:
+		for order in filtered_orders:
+			order_id = order['id']
+			print order_id
+			params = {}
+			cancelled = fulfill_order(shop_url=shop_url,
+															api_key=shopify_api_key,
+															password=shopify_password,
+															order_id=order_id,
+															debug=debug)
+		return True
+	except:
+	 	return False

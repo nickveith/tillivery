@@ -4,9 +4,9 @@ import json
 
 ###########################################################################
 
-input_data = {
-	"body": '{"customer":{"id":5824530511},"order_total":600,"line_items":[{"variant_id":"44167873423","quantity":"1"}],"use_customer_default_address":"true"}'
-	}
+# input_data = {
+# 	"body": '{"customer":{"id":5824530511},"order_total":600,"line_items":[{"variant_id":"44167873423","quantity":"1"}],"use_customer_default_address":"true"}'
+# 	}
 output = {}
 
 parsed_input_data = json.loads(input_data['body'])

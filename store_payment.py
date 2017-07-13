@@ -94,7 +94,7 @@ def remove_empty_keys(dict_):
 
 def create_stripe_customer(input_data, debug=False):
 	
-	first_nameinput_data.get('first_name')
+	first_name = input_data.get('first_name')
 	last_name = input_data.get('last_name')
 	email = input_data.get('email')
 
@@ -178,18 +178,18 @@ def update_metafields(shopify_customer_id, metafields_new, debug=False):
 ###########################################################################
 
 
-input_data = {
-	'shopify_customer_id': '6404866508',
-	'first_name': 'Nick',
-	'last_name': 'Veith',
-	'email': 'nick@brightblackbox.com',
-	'stripe_token': 'tok_visa',
-	'stripe_customer_id': 'cus_AlsRHFTysjW5aj',
-	'stripe_api_key': 'sk_test_AJT45IWyJqkWpSLnxICAWAb2',
-	'shopify_store_url': 'https://tillivery.myshopify.com',
-	'shopify_api_key': '642c1f9c3ed33035ea2a623ad970d52c',
-	'shopify_password': '0e3ea297e2e7ffde0634d0ecb28413ac'
-	}
+# input_data = {
+# 	'shopify_customer_id': '6404866508',
+# 	'first_name': 'Nick',
+# 	'last_name': 'Veith',
+# 	'email': 'nick@brightblackbox.com',
+# 	'stripe_token': 'tok_visa',
+# 	'stripe_customer_id': 'cus_AlsRHFTysjW5aj',
+# 	'stripe_api_key': 'sk_test_AJT45IWyJqkWpSLnxICAWAb2',
+# 	'shopify_store_url': 'https://tillivery.myshopify.com',
+# 	'shopify_api_key': '642c1f9c3ed33035ea2a623ad970d52c',
+# 	'shopify_password': '0e3ea297e2e7ffde0634d0ecb28413ac'
+# 	}
 output = {}
 
 ##################################################################

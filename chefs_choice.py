@@ -61,7 +61,7 @@ def request_ (method, url, headers, params=None, data=None, json=None, auth=None
 
 	return result
 
-def fetch_subscribers (shop_url, api_key, password, params={}, debug=False):
+def get_customers(shop_url, api_key, password, params={}, debug=False):
 	headers = shopify_headers
 	
 	method = 'GET'
@@ -73,7 +73,49 @@ def fetch_subscribers (shop_url, api_key, password, params={}, debug=False):
 	method = 'GET'
 	edge = '/admin/customers/search.json'
 	url = shop_url + edge
-	params = {'query': 'Active Subscriber'}
+
+	limit = 250
+	total_pages = max(ceil(count/limit),1)
+	customers = []
+	for page in xrange(1, int(total_pages + 1)):
+		params['page'] = page
+		params['limit'] = limit
+		response = request_(method, url, headers, params=params, auth=(api_key, password), debug=debug)
+		customers += response.get('data',{}).get('customers')
+	
+	return customers
+
+def update_customer(shop_url, api_key, password, customer_id, params={}, debug=False):
+	headers = shopify_headers
+	
+	method = 'PUT'
+	edge = '/admin/customers/{customer_id}.json'.format(customer_id=customer_id)
+	url = shop_url + edge
+
+	parameters = {'customer': {'id': customer_id}}
+	for k in params.keys():
+		parameters['customer'][k] = params[k]
+
+	print parameters
+
+	response = request_(method, url, headers, json=parameters, auth=(api_key, password), debug=debug)
+	customers = response.get('data',{}).get('customers')
+	
+	return customers
+
+def fetch_subscribers(shop_url, api_key, password, params={}, debug=False):
+	headers = shopify_headers
+	
+	method = 'GET'
+	edge = '/admin/customers/count.json'
+	url = shop_url + edge
+	response = request_(method, url, headers, auth=(api_key, password), debug=debug)
+	count = response.get('data',{}).get('count',0)
+
+	method = 'GET'
+	edge = '/admin/customers/search.json'
+	url = shop_url + edge
+	params['query'] = 'Active Subscriber'
 
 	limit = 250
 	total_pages = max(ceil(count/limit),1)
@@ -233,72 +275,90 @@ def process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
 
 ########################################################################
 
-debug = False
-test_customer_ids = []
 
-subscribers = fetch_subscribers(shop_url, shopify_api_key, shopify_password, debug=debug)
-subscribers = [subscriber for subscriber in subscribers if subscriber['id'] in test_customer_ids or test_customer_ids == []]
+def run_chefs_choice(debug=False):
 
-print len(subscribers)
+	test_customer_ids = []
 
-orders = fetch_orders(shop_url, shopify_api_key, shopify_password, debug=debug)
-variant_dict = fetch_variants(shop_url, shopify_api_key, shopify_password, debug=debug)
+	subscribers = fetch_subscribers(shop_url, shopify_api_key, shopify_password, debug=debug)
+	subscribers = [subscriber for subscriber in subscribers if subscriber['id'] in test_customer_ids or test_customer_ids == []]
 
-print len(variant_dict)
+	print len(subscribers)
 
-order_dict = {}
-for order in orders:
-	customer_id =  order['customer']['id']
-	customer_orders = order_dict.get(customer_id)
-	if customer_orders is None:
-		customer_orders = []
-	customer_orders.append(order)
-	order_dict[customer_id] = customer_orders
+	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, debug=debug)
+	variant_dict = fetch_variants(shop_url, shopify_api_key, shopify_password, debug=debug)
 
-base_chefs_choice = chefs_choice(variant_dict)
+	print len(variant_dict)
 
-print base_chefs_choice
+	order_dict = {}
+	for order in orders:
+		customer_id =  order['customer']['id']
+		customer_orders = order_dict.get(customer_id)
+		if customer_orders is None:
+			customer_orders = []
+		customer_orders.append(order)
+		order_dict[customer_id] = customer_orders
 
-# ### Prepare Default Orders
-for customer in subscribers:
-	customer_id = customer['id']
-	print customer_id
-	default_order = process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
-	print default_order
-	if default_order:
-		lineitems_dict = {}
-		for box_item in default_order.keys():
-			variant = default_order[box_item]
-			variant_id = variant['variant_id']
-			quantity = variant['quantity']
-			lineitem_quantity = lineitems_dict.get(variant_id, 0)
-			if lineitem_quantity:
-				quantity += lineitem_quantity
-			lineitems_dict[variant_id] = {'variant_id': variant_id, 'quantity': quantity}
+	base_chefs_choice = chefs_choice(variant_dict)
 
-		lineitems = [value for key, value in lineitems_dict.iteritems()]
-		use_customer_default_address = True
-		order_total = 0
+	# print base_chefs_choice
 
-		for lineitem in lineitems:
-			variant_id = lineitem['variant_id']
-			quantity = lineitem['quantity']
-			variant = variant_dict[variant_id]
-			default_price = float(variant.get('variant', {}).get('price',0))
-			lineitem_price = float(quantity) * default_price
-			order_total += lineitem_price
+	### Prepare Default Orders
+	for customer in subscribers:
+		customer_id = customer['id']
+		print customer_id
+		default_order = process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
+		print default_order
+		if default_order:
+			lineitems_dict = {}
+			for box_item in default_order.keys():
+				variant = default_order[box_item]
+				variant_id = variant['variant_id']
+				quantity = variant['quantity']
+				lineitem_quantity = lineitems_dict.get(variant_id, 0)
+				if lineitem_quantity:
+					quantity += lineitem_quantity
+				lineitems_dict[variant_id] = {'variant_id': variant_id, 'quantity': quantity}
 
-		order_total = int(order_total * 100)
+			lineitems = [value for key, value in lineitems_dict.iteritems()]
+			use_customer_default_address = True
+			order_total = 0
 
-		if lineitems != []:
-			order = create_order(customer, 
-								order_total, 
-								lineitems, 
-								use_customer_default_address, 
-								shopify_api_key, 
-								shopify_password, 
-								debug=False)
-			print order
+			for lineitem in lineitems:
+				variant_id = lineitem['variant_id']
+				quantity = lineitem['quantity']
+				variant = variant_dict[variant_id]
+				default_price = float(variant.get('variant', {}).get('price',0))
+				lineitem_price = float(quantity) * default_price
+				order_total += lineitem_price
+
+			order_total = int(order_total * 100)
+
+			if lineitems != []:
+				order = create_order(customer, 
+									order_total, 
+									lineitems, 
+									use_customer_default_address, 
+									shopify_api_key, 
+									shopify_password, 
+									debug=False)
+				print order
+
+	return True
+
+def remove_customer_tag(tag, debug=False):
+
+	tagged_customers =  get_customers(shop_url, shopify_api_key, shopify_password, params={'query': tag}, debug=debug)
+	for c in tagged_customers:
+		customer_id = c['id']
+		tags = c.get('tags', '').split(', ')
+		if tag in tags:
+			tags.remove(tag)
+			customer_tags = ', '.join(tags)
+			customer = update_customer(shop_url, shopify_api_key, shopify_password, customer_id=customer_id, params={'tags': customer_tags}, debug=True)
+
+	return True
+
 
 
 
