@@ -326,7 +326,8 @@ def cancel_failed_payments_orders(debug=False):
 	
 	parameters = {'financial_status': 'pending'}
 	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, parameters, debug=debug)
-	filtered_orders = [o for o in orders if o['financial_status'] == 'pending' and o['fulfillment_status'] == None and 'Payment Failed' in o['tags']]
+	filtered_orders = [o for o in orders if o['financial_status'] == 'pending' and 'Payment Failed' in o['tags']]
+	print filtered_orders
 	try:
 		for order in filtered_orders:
 			order_id = order['id']

@@ -281,6 +281,9 @@ def run_chefs_choice(debug=False):
 	test_customer_ids = []
 
 	subscribers = fetch_subscribers(shop_url, shopify_api_key, shopify_password, debug=debug)
+
+	print len(subscribers)
+
 	subscribers = [subscriber for subscriber in subscribers if subscriber['id'] in test_customer_ids or test_customer_ids == []]
 
 	print len(subscribers)
@@ -292,7 +295,12 @@ def run_chefs_choice(debug=False):
 
 	order_dict = {}
 	for order in orders:
-		customer_id =  order['customer']['id']
+		print (order)
+		customer_id =  order.get('customer',{}).get('id')
+
+		if customer_id is None:
+			continue
+
 		customer_orders = order_dict.get(customer_id)
 		if customer_orders is None:
 			customer_orders = []
@@ -306,43 +314,52 @@ def run_chefs_choice(debug=False):
 	### Prepare Default Orders
 	for customer in subscribers:
 		customer_id = customer['id']
-		print customer_id
-		default_order = process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
-		print default_order
-		if default_order:
-			lineitems_dict = {}
-			for box_item in default_order.keys():
-				variant = default_order[box_item]
-				variant_id = variant['variant_id']
-				quantity = variant['quantity']
-				lineitem_quantity = lineitems_dict.get(variant_id, 0)
-				if lineitem_quantity:
-					quantity += lineitem_quantity
-				lineitems_dict[variant_id] = {'variant_id': variant_id, 'quantity': quantity}
 
-			lineitems = [value for key, value in lineitems_dict.iteritems()]
-			use_customer_default_address = True
-			order_total = 0
+		print customer_id, customer['tags']
 
-			for lineitem in lineitems:
-				variant_id = lineitem['variant_id']
-				quantity = lineitem['quantity']
-				variant = variant_dict[variant_id]
-				default_price = float(variant.get('variant', {}).get('price',0))
-				lineitem_price = float(quantity) * default_price
-				order_total += lineitem_price
+		if 'Skip' not in customer['tags']:
 
-			order_total = int(order_total * 100)
+			print customer_id
+			default_order = process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
+			print default_order
+			if default_order:
+				lineitems_dict = {}
+				for box_item in default_order.keys():
+					variant = default_order[box_item]
+					variant_id = variant['variant_id']
+					quantity = variant['quantity']
+					lineitem_quantity = lineitems_dict.get(variant_id, 0)
+					if lineitem_quantity:
+						quantity += lineitem_quantity
+					lineitems_dict[variant_id] = {'variant_id': variant_id, 'quantity': quantity}
 
-			if lineitems != []:
-				order = create_order(customer, 
-									order_total, 
-									lineitems, 
-									use_customer_default_address, 
-									shopify_api_key, 
-									shopify_password, 
-									debug=False)
-				print order
+				lineitems = [value for key, value in lineitems_dict.iteritems()]
+				use_customer_default_address = True
+				order_total = 0
+
+				for lineitem in lineitems:
+					variant_id = lineitem['variant_id']
+					quantity = lineitem['quantity']
+					variant = variant_dict[variant_id]
+					default_price = float(variant.get('variant', {}).get('price',0))
+					lineitem_price = float(quantity) * default_price
+					order_total += lineitem_price
+
+				order_total = int(order_total * 100)
+
+				if lineitems != []:
+					order = create_order(customer, 
+										order_total, 
+										lineitems, 
+										use_customer_default_address, 
+										shopify_api_key, 
+										shopify_password, 
+										debug=False)
+					print order
+
+		else:
+
+			print customer_id, 'Skip Tag Found'
 
 	return True
 
