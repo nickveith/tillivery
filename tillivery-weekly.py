@@ -25,11 +25,11 @@ if today_is_the_day:
 
     ## Clear Failed Payment Orders by Cancelling and Refunding orders that are OPEN and UNPAID and TAGGED WITH PAYMENT FAILED -  Payment Failed view in Orders
     canceled_orders = cancel_failed_payments_orders(debug=True)
-    print 'canceled_orders', canceled_orders
+    print ('canceled_orders', canceled_orders)
 
     ## Fulfill any orders that are OPEN and PAID and not FULFILLED - Ready to Fulfill view in Orders
     fulfilled_orders = fulfill_last_weeks_orders()
-    print 'fulfilled_orders', fulfilled_orders
+    print ('fulfilled_orders', fulfilled_orders)
 
     ## Verify that Chef's Choice options have been set - Chef's Choice view in products
     #### This is still manual
@@ -37,17 +37,17 @@ if today_is_the_day:
     ## Run Chef's Choice to create default orders for any ACTIVE SUBSCRIBERS that do not have a full box
     if canceled_orders and fulfilled_orders:
         chefs_choice = run_chefs_choice()
-        print 'chefs_choice', chefs_choice
+        print ('chefs_choice', chefs_choice)
 
     ## Run Process Orders script to aggregate balance per customer and create a charge in stripe
     if chefs_choice:
         processed_orders = run_process_orders()
-        print 'processed_orders', processed_orders
+        print ('processed_orders', processed_orders)
 
     # ## Remove Skip Tag from all customers
     if processed_orders:
         tagged_customers = remove_customer_tag(tag='Skip')
-        print 'tagged_customers', tagged_customers
+        print ('tagged_customers', tagged_customers)
 
 ## On Friday Retry Payment for Failed Payment Orders
 

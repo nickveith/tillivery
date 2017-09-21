@@ -59,7 +59,7 @@ def request_ (method, url, headers, params=None, data=None, json=None, auth=None
 		pass
 
 	if debug:
-		print result
+		print (result)
 
 	return result
 
@@ -88,7 +88,7 @@ def fetch_orders (shop_url, api_key, password, parameters={}, debug=False):
 	for page in xrange(1, int(total_pages + 1)):
 		params['page'] = page
 		params['limit'] = limit
-		print params
+		print (params)
 		response = request_(method, url, headers, params=params, auth=(api_key, password), debug=debug)
 		orders += response.get('data',{}).get('orders')
 
@@ -327,11 +327,11 @@ def cancel_failed_payments_orders(debug=False):
 	parameters = {'financial_status': 'pending'}
 	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, parameters, debug=debug)
 	filtered_orders = [o for o in orders if o['financial_status'] == 'pending' and 'Payment Failed' in o['tags']]
-	print filtered_orders
+	print (filtered_orders)
 	try:
 		for order in filtered_orders:
 			order_id = order['id']
-			print order_id
+			print (order_id)
 			params = {}
 			cancelled = cancel_order(shop_url=shop_url,
 															api_key=shopify_api_key,
@@ -352,7 +352,7 @@ def fulfill_last_weeks_orders():
 	try:
 		for order in filtered_orders:
 			order_id = order['id']
-			print order_id
+			print (order_id)
 			params = {}
 			cancelled = fulfill_order(shop_url=shop_url,
 															api_key=shopify_api_key,

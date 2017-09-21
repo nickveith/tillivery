@@ -57,7 +57,7 @@ def request_ (method, url, headers, params=None, data=None, json=None, auth=None
 		pass
 
 	if debug:
-		print result
+		print (result)
 
 	return result
 
@@ -96,7 +96,7 @@ def update_customer(shop_url, api_key, password, customer_id, params={}, debug=F
 	for k in params.keys():
 		parameters['customer'][k] = params[k]
 
-	print parameters
+	print (parameters)
 
 	response = request_(method, url, headers, json=parameters, auth=(api_key, password), debug=debug)
 	customers = response.get('data',{}).get('customers')
@@ -210,7 +210,7 @@ def chefs_choice(variant_dict):
 		tags = product['tags']
 		max_items = {'entree': 2, 'soup': 1, 'salad': 1, 'bread': 1}
 		if 'chef\'s choice' in tags.lower():
-			print added_items
+			print (added_items)
 			items_added = added_items[product_type]
 			items_max = max_items[product_type]
 			if  items_added < items_max:
@@ -282,16 +282,16 @@ def run_chefs_choice(debug=False):
 
 	subscribers = fetch_subscribers(shop_url, shopify_api_key, shopify_password, debug=debug)
 
-	print len(subscribers)
+	print (len(subscribers))
 
 	subscribers = [subscriber for subscriber in subscribers if subscriber['id'] in test_customer_ids or test_customer_ids == []]
 
-	print len(subscribers)
+	print (len(subscribers))
 
 	orders = fetch_orders(shop_url, shopify_api_key, shopify_password, debug=debug)
 	variant_dict = fetch_variants(shop_url, shopify_api_key, shopify_password, debug=debug)
 
-	print len(variant_dict)
+	print (len(variant_dict))
 
 	order_dict = {}
 	for order in orders:
@@ -315,13 +315,13 @@ def run_chefs_choice(debug=False):
 	for customer in subscribers:
 		customer_id = customer['id']
 
-		print customer_id, customer['tags']
+		print (customer_id, customer['tags'])
 
 		if 'Skip' not in customer['tags']:
 
-			print customer_id
+			print (customer_id)
 			default_order = process_default_order(base_chefs_choice, customer, order_dict, variant_dict)
-			print default_order
+			print (default_order)
 			if default_order:
 				lineitems_dict = {}
 				for box_item in default_order.keys():
@@ -355,11 +355,11 @@ def run_chefs_choice(debug=False):
 										shopify_api_key, 
 										shopify_password, 
 										debug=False)
-					print order
+					print (order)
 
 		else:
 
-			print customer_id, 'Skip Tag Found'
+			print (customer_id, 'Skip Tag Found')
 
 	return True
 
