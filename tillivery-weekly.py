@@ -24,7 +24,7 @@ processed_orders = False
 if today_is_the_day:
 
     ## Clear Failed Payment Orders by Cancelling and Refunding orders that are OPEN and UNPAID and TAGGED WITH PAYMENT FAILED -  Payment Failed view in Orders
-    canceled_orders = cancel_failed_payments_orders(debug=True)
+    canceled_orders = cancel_failed_payments_orders()
     print ('canceled_orders', canceled_orders)
 
     ## Fulfill any orders that are OPEN and PAID and not FULFILLED - Ready to Fulfill view in Orders
@@ -48,6 +48,10 @@ if today_is_the_day:
     if processed_orders:
         tagged_customers = remove_customer_tag(tag='Skip')
         print ('tagged_customers', tagged_customers)
+
+else:
+
+    print("Today is not the day")
 
 ## On Friday Retry Payment for Failed Payment Orders
 
